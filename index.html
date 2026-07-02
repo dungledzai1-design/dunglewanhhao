@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zalo IMEI & Cookie Extractor</title>
+    <style>
+        :root {
+            --bg: #0a0c14;
+            --surface: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.06);
+            --text: #e2e8f0;
+            --text-secondary: rgba(255, 255, 255, 0.5);
+            --accent: #7c8cf8;
+            --accent-glow: rgba(124, 140, 248, 0.2);
+            --green-particle: rgba(16, 185, 129, 0.6);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Aurora Background с зелеными частицами */
+        .aurora-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0;
+            background: radial-gradient(ellipse at 20% 50%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
+                        radial-gradient(ellipse at 80% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 50%),
+                        radial-gradient(ellipse at 50% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .particles-container {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            background: var(--green-particle);
+            border-radius: 50%;
+            filter: blur(8px);
+            animation: floatUp linear infinite;
+            opacity: 0;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            10% { opacity: 0.8; }
+            90% { opacity: 0.2; }
+            100% { transform: translateY(-10vh) scale(1.5); opacity: 0; }
+        }
+
+        /* Контейнер */
+        .app-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 420px;
+            padding: 1rem;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .hidden { display: none !important; }
+
+        /* Логин */
+        .logo-area {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .logo-icon {
+            width: 56px; height: 56px;
+            margin: 0 auto 1rem;
+            background: rgba(124, 140, 248, 0.1);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: var(--accent);
+        }
+        h1 { font-size: 1.5rem; font-weight: 700; }
+        .subtitle { color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.25rem; }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+        label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+        input[type="password"] {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            color: var(--text);
+            font-family: monospace;
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input[type="password"]:focus {
+            border-color: var(--accent);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+        .btn-primary:hover { filter: brightness(1.1); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+
+        /* Дашборд */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .menu-btn {
+            background: none;
+            border: none;
+            color: var(--text);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+        }
+        .menu-btn:hover { background: rgba(255,255,255,0.05); }
+
+        .status-badges {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .badge {
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            flex: 1;
+            text-align: center;
+            min-width: 80px;
+        }
+        .badge.active {
+            border-color: #10b981;
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .qr-area {
+            text-align: center;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 1rem;
+            margin: 1rem 0;
+        }
+        .qr-area img {
+            max-width: 200px;
+            height: auto;
+        }
+
+        .result-box {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin: 1rem 0;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.75rem;
+            word-break: break-all;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        .btn-outline:hover { background: rgba(255,255,255,0.05); }
+
+        .slide-panel {
+            position: fixed;
+            top: 0; right: 0;
+            width: 300px;
+            height: 100%;
+            background: rgba(10,12,20,0.95);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid var(--border);
+            z-index: 10;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            padding: 2rem 1.5rem;
+            overflow-y: auto;
+        }
+        .slide-panel.open {
+            transform: translateX(0);
+        }
+        .close-panel {
+            position: absolute;
+            top: 1rem; right: 1rem;
+            background: none;
+            border: none;
+            color: var(--text);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Aurora фон -->
+    <div class="aurora-bg"></div>
+    <div class="particles-container" id="particles"></div>
+
+    <!-- Слайд-панель (инфо админа) -->
+    <div class="slide-panel" id="slidePanel">
+        <button class="close-panel" onclick="togglePanel()">×</button>
+        <h3 style="margin-bottom:1rem;">ℹ️ Thông tin Admin</h3>
+        <p style="color:var(--text-secondary); font-size:0.875rem;">
+            Công cụ trích xuất IMEI và Cookie Zalo.<br><br>
+            <strong>Cách dùng:</strong><br>
+            1. Nhấn Start để lấy QR.<br>
+            2. Quét QR bằng app Zalo trên điện thoại.<br>
+            3. Xác nhận đăng nhập.<br>
+            4. Dữ liệu sẽ tự động hiển thị.
+        </p>
+    </div>
+
+    <div class="app-container">
+        <!-- СТРАНИЦА ЛОГИНА -->
+        <div id="loginPage" class="card">
+            <div class="logo-area">
+                <div class="logo-icon">🔐</div>
+                <h1>Zalo Extractor</h1>
+                <p class="subtitle">Trích xuất IMEI & Cookie</p>
+            </div>
+            <div class="input-group">
+                <label>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    Mật khẩu truy cập
+                </label>
+                <input type="password" id="passwordInput" placeholder="Nhập mật khẩu...">
+            </div>
+            <button class="btn btn-primary" onclick="login()">
+                <span>🔑</span> Đăng nhập
+            </button>
+            <p style="text-align:center; margin-top:1rem; font-size:0.75rem; color:var(--text-secondary);">
+                Mật khẩu mặc định: <code>admin123</code>
+            </p>
+        </div>
+
+        <!-- СТРАНИЦА ДАШБОРДА -->
+        <div id="dashboardPage" class="card hidden">
+            <div class="dashboard-header">
+                <h2 style="font-size:1.25rem;">📊 Dashboard</h2>
+                <button class="menu-btn" onclick="togglePanel()">☰</button>
+            </div>
+
+            <!-- 3 статус-баджа -->
+            <div class="status-badges">
+                <div class="badge" id="badgeScan">⏳ Chờ quét QR</div>
+                <div class="badge" id="badgeConfirm">📱 Chờ xác nhận</div>
+                <div class="badge" id="badgeDone">✅ Hoàn tất</div>
+            </div>
+
+            <!-- QR-область -->
+            <div id="qrContainer" style="display: none;" class="qr-area">
+                <img id="qrImage" src="" alt="QR Code">
+                <p style="margin-top:0.5rem; color:#333; font-size:0.8rem;">Quét mã QR bằng Zalo</p>
+            </div>
+
+            <button class="btn btn-primary" id="startBtn" onclick="startZaloLogin()">
+                🚀 Start
+            </button>
+
+            <!-- Область результата -->
+            <div id="resultContainer" class="hidden">
+                <div style="margin-top:1rem;">
+                    <strong style="font-size:0.8rem;">📋 Dữ liệu trích xuất:</strong>
+                    <div class="result-box" id="resultText"></div>
+                    <div class="btn-row">
+                        <button class="btn btn-sm btn-outline" onclick="copyResult()">📋 Copy</button>
+                        <button class="btn btn-sm btn-outline" onclick="downloadResult()">💾 Tải .txt</button>
+                    </div>
+                    <div class="btn-row" style="margin-top:0.5rem;">
+                        <button class="btn btn-sm btn-outline" onclick="switchFormat('python')" id="btnPy">Python Format</button>
+                        <button class="btn btn-sm btn-outline" onclick="switchFormat('js')" id="btnJs">JS Format</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // -----------------------------------------------------
+        // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+        // -----------------------------------------------------
+        const VALID_PASSWORD = "admin123";
+        let currentFormat = "python"; // или "js"
+        let extractedData = null;
+        let pollingInterval = null;
+
+        // -----------------------------------------------------
+        // ЧАСТИЦЫ AURORA BACKGROUND
+        // -----------------------------------------------------
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                const size = Math.random() * 80 + 20;
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDuration = (Math.random() * 10 + 8) + 's';
+                particle.style.animationDelay = (Math.random() * 10) + 's';
+                container.appendChild(particle);
+            }
+        }
+        createParticles();
+
+        // -----------------------------------------------------
+        // АВТОРИЗАЦИЯ
+        // -----------------------------------------------------
+        function login() {
+            const pwd = document.getElementById('passwordInput').value;
+            if (pwd === VALID_PASSWORD) {
+                document.getElementById('loginPage').classList.add('hidden');
+                document.getElementById('dashboardPage').classList.remove('hidden');
+            } else {
+                alert('Sai mật khẩu!');
+            }
+        }
+
+        // Enter key для логина
+        document.getElementById('passwordInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') login();
+        });
+
+        // -----------------------------------------------------
+        // СЛАЙД-ПАНЕЛЬ
+        // -----------------------------------------------------
+        function togglePanel() {
+            document.getElementById('slidePanel').classList.toggle('open');
+        }
+
+        // -----------------------------------------------------
+        // УПРАВЛЕНИЕ СТАТУС-БАДЖАМИ
+        // -----------------------------------------------------
+        function setActiveBadge(badgeId) {
+            ['badgeScan', 'badgeConfirm', 'badgeDone'].forEach(id => {
+                document.getElementById(id).classList.remove('active');
+            });
+            document.getElementById(badgeId).classList.add('active');
+        }
+
+        // -----------------------------------------------------
+        // ЗАПУСК ЛОГИНА ZALO
+        // -----------------------------------------------------
+        async function startZaloLogin() {
+            const startBtn = document.getElementById('startBtn');
+            startBtn.disabled = true;
+            startBtn.textContent = '⏳ Đang khởi tạo...';
+            
+            setActiveBadge('badgeScan');
+            document.getElementById('resultContainer').classList.add('hidden');
+            extractedData = null;
+
+            try {
+                const resp = await fetch('/api/zalo/start-login', { method: 'POST' });
+                const data = await resp.json();
+                if (data.error) {
+                    alert('Lỗi: ' + data.error);
+                    resetStartButton();
+                    return;
+                }
+
+                // Показываем QR
+                const qrContainer = document.getElementById('qrContainer');
+                const qrImage = document.getElementById('qrImage');
+                qrImage.src = 'data:image/png;base64,' + data.qr_image;
+                qrContainer.style.display = 'block';
+
+                startBtn.textContent = '🔄 Đang chờ quét...';
+                
+                // Запускаем опрос статуса сканирования
+                startPollingScan();
+
+            } catch (err) {
+                alert('Lỗi kết nối: ' + err.message);
+                resetStartButton();
+            }
+        }
+
+        function resetStartButton() {
+            const btn = document.getElementById('startBtn');
+            btn.disabled = false;
+            btn.textContent = '🚀 Start';
+            if (pollingInterval) clearInterval(pollingInterval);
+        }
+
+        // -----------------------------------------------------
+        // ОПРОС: ОЖИДАНИЕ СКАНА
+        // -----------------------------------------------------
+        function startPollingScan() {
+            if (pollingInterval) clearInterval(pollingInterval);
+            pollingInterval = setInterval(async () => {
+                try {
+                    const resp = await fetch('/api/zalo/check-scan', { method: 'POST' });
+                    const data = await resp.json();
+                    
+                    if (data.status === 'scanned') {
+                        clearInterval(pollingInterval);
+                        setActiveBadge('badgeConfirm');
+                        document.getElementById('startBtn').textContent = '📱 Đã quét! Chờ xác nhận...';
+                        document.getElementById('qrContainer').style.display = 'none';
+                        startPollingConfirm();
+                    } else if (data.status === 'error') {
+                        clearInterval(pollingInterval);
+                        alert('Lỗi: ' + data.message);
+                        resetStartButton();
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            }, 2000);
+        }
+
+        // -----------------------------------------------------
+        // ОПРОС: ОЖИДАНИЕ ПОДТВЕРЖДЕНИЯ
+        // -----------------------------------------------------
+        function startPollingConfirm() {
+            pollingInterval = setInterval(async () => {
+                try {
+                    const resp = await fetch('/api/zalo/check-confirm', { method: 'POST' });
+                    const data = await resp.json();
+                    
+                    if (data.status === 'confirmed') {
+                        clearInterval(pollingInterval);
+                        setActiveBadge('badgeDone');
+                        document.getElementById('startBtn').textContent = '✅ Hoàn tất!';
+                        document.getElementById('startBtn').disabled = false;
+                        
+                        // Сохраняем данные
+                        extractedData = {
+                            imei: data.imei,
+                            cookies_python: data.cookies_python,
+                            cookies_js: data.cookies_js_format,
+                            user_name: data.user_name
+                        };
+                        
+                        displayResult();
+                    } else if (data.status === 'declined') {
+                        clearInterval(pollingInterval);
+                        alert('Đăng nhập bị từ chối!');
+                        resetStartButton();
+                    } else if (data.status === 'error') {
+                        clearInterval(pollingInterval);
+                        alert('Lỗi: ' + data.message);
+                        resetStartButton();
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            }, 2000);
+        }
+
+        // -----------------------------------------------------
+        // ОТОБРАЖЕНИЕ РЕЗУЛЬТАТА
+        // -----------------------------------------------------
+        function displayResult() {
+            const container = document.getElementById('resultContainer');
+            container.classList.remove('hidden');
+            updateResultText();
+        }
+
+        function updateResultText() {
+            const resultBox = document.getElementById('resultText');
+            if (!extractedData) return;
+            
+            if (currentFormat === 'python') {
+                resultBox.textContent = JSON.stringify({
+                    imei: extractedData.imei,
+                    cookies: extractedData.cookies_python
+                }, null, 2);
+            } else {
+                resultBox.textContent = JSON.stringify({
+                    imei: extractedData.imei,
+                    cookies_js: extractedData.cookies_js
+                }, null, 2);
+            }
+        }
+
+        function switchFormat(format) {
+            currentFormat = format;
+            document.getElementById('btnPy').style.borderColor = format === 'python' ? '#7c8cf8' : 'var(--border)';
+            document.getElementById('btnJs').style.borderColor = format === 'js' ? '#7c8cf8' : 'var(--border)';
+            updateResultText();
+        }
+
+        function copyResult() {
+            const text = document.getElementById('resultText').textContent;
+            navigator.clipboard.writeText(text).then(() => alert('Đã sao chép!'));
+        }
+
+        function downloadResult() {
+            if (!extractedData) return;
+            let content;
+            if (currentFormat === 'python') {
+                content = JSON.stringify({ imei: extractedData.imei, cookies: extractedData.cookies_python }, null, 2);
+            } else {
+                content = JSON.stringify({ imei: extractedData.imei, cookies_js: extractedData.cookies_js }, null, 2);
+            }
+            const blob = new Blob([content], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `zalo_data_${extractedData.imei?.slice(0,8) || 'unknown'}.txt`;
+            a.click();
+        }
+    </script>
+</body>
+</html>
