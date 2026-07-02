@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zalo IMEI & Cookie Extractor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #0a0c14;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+
+        /* Aurora Background */
+        .aurora-bg {
+            background: linear-gradient(135deg, #0a0c14 0%, #1a1f2e 50%, #0a0c14 100%);
+            position: relative;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+
+        .aurora-bg::before {
+            content: '';
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(34, 197, 94, 0.12) 0%, transparent 70%);
+            top: -150px;
+            right: -100px;
+            animation: aurora1 8s ease-in-out infinite;
+        }
+
+        .aurora-bg::after {
+            content: '';
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(34, 197, 94, 0.08) 0%, transparent 70%);
+            bottom: -100px;
+            left: -100px;
+            animation: aurora2 10s ease-in-out infinite;
+        }
+
+        @keyframes aurora1 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(-80px, 80px) scale(1.2); }
+        }
+
+        @keyframes aurora2 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(80px, -80px) scale(1.3); }
+        }
+
+        .aurora-particle {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(34, 197, 94, 0.05) 0%, transparent 70%);
+            animation: float 15s ease-in-out infinite;
+        }
+
+        .aurora-particle:nth-child(1) { 
+            width: 300px; height: 300px;
+            top: 10%; left: 5%; 
+            animation-delay: 0s; 
+        }
+        .aurora-particle:nth-child(2) { 
+            width: 400px; height: 400px;
+            top: 50%; right: 5%; 
+            animation-delay: -4s; 
+        }
+        .aurora-particle:nth-child(3) { 
+            width: 250px; height: 250px;
+            bottom: 10%; left: 20%; 
+            animation-delay: -8s; 
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(50px, -40px) scale(1.1); }
+            66% { transform: translate(-30px, 30px) scale(0.9); }
+        }
+
+        /* Layout */
+        .relative {
+            position: relative;
+        }
+
+        .z-10 {
+            z-index: 10;
+        }
+
+        .min-h-screen {
+            min-height: 100vh;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .flex-col {
+            flex-direction: column;
+        }
+
+        .flex-1 {
+            flex: 1 1 0%;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .justify-center {
+            justify-content: center;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .px-4 {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .px-6 {
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+
+        .py-4 {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+
+        .w-full {
+            width: 100%;
+        }
+
+        .max-w-2xl {
+            max-width: 42rem;
+        }
+
+        .space-y-6 > * + * {
+            margin-top: 1.5rem;
+        }
+
+        .space-y-4 > * + * {
+            margin-top: 1rem;
+        }
+
+        .space-y-3 > * + * {
+            margin-top: 0.75rem;
+        }
+
+        .gap-3 {
+            gap: 0.75rem;
+        }
+
+        .gap-2 {
+            gap: 0.5rem;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        /* Header */
+        .border-b {
+            border-bottom-width: 1px;
+            border-bottom-style: solid;
+        }
+
+        .border-white\/\[0\.06\] {
+            border-color: rgba(255, 255, 255, 0.06);
+        }
+
+        .text-lg {
+            font-size: 1.125rem;
+            line-height: 1.75rem;
+        }
+
+        .font-semibold {
+            font-weight: 600;
+        }
+
+        .text-white\/60 {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .hover\:text-white:hover {
+            color: #ffffff;
+        }
+
+        .transition-colors {
+            transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 150ms;
+        }
+
+        .p-2 {
+            padding: 0.5rem;
+        }
+
+        /* Dropdown */
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: rgba(20, 25, 40, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 8px 0;
+            min-width: 200px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            z-index: 100;
+        }
+
+        .dropdown-menu.active {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 10px 20px;
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        .status-inactive {
+            background: rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.3);
+        }
+
+        .status-waiting {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .status-scanned {
+            background: rgba(96, 165, 250, 0.2);
+            color: #60a5fa;
+        }
+
+        .status-success {
+            background: rgba(52, 211, 153, 0.2);
+            color: #34d399;
+        }
+
+        .status-error {
+            background: rgba(248, 113, 113, 0.2);
+            color: #f87171;
+        }
+
+        /* Buttons */
+        .btn-start {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 2rem;
+            border-radius: 0.75rem;
+            background: linear-gradient(135deg, #7c8cf8, #6c7cf8);
+            color: white;
+            font-weight: 500;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 8px 25px rgba(124, 140, 248, 0.3);
+        }
+
+        .btn-start:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(124, 140, 248, 0.4);
+        }
+
+        .btn-start:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* QR Container */
+        .qr-container {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+            padding: 30px;
+            display: none;
+            text-align: center;
+        }
+
+        .qr-container.active {
+            display: block;
+        }
+
+        .qr-container img {
+            max-width: 250px;
+            border-radius: 12px;
+            background: white;
+            padding: 12px;
+        }
+
+        .qr-container .sub-text {
+            color: rgba(255,255,255,0.4);
+            font-size: 0.875rem;
+            margin-top: 0.75rem;
+        }
+
+        /* Result Container */
+        .result-container {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .result-container.active {
+            display: block;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .result-header h4 {
+            font-weight: 500;
+            font-size: 1rem;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .result-actions button {
+            padding: 4px 14px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05);
+            color: #e2e8f0;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .result-actions button:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .format-switch {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .format-btn {
+            padding: 4px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: transparent;
+            color: rgba(255,255,255,0.5);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .format-btn.active {
+            background: rgba(124, 140, 248, 0.2);
+            border-color: #7c8cf8;
+            color: #7c8cf8;
+        }
+
+        .format-btn:hover {
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        .result-content {
+            background: rgba(0,0,0,0.3);
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 12px;
+            max-height: 350px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            color: #a8b5d9;
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .max-w-2xl {
+                max-width: 100%;
+            }
+            .qr-container img {
+                max-width: 180px;
+            }
+            .result-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .result-actions {
+                justify-content: center;
+            }
+            .status-badge {
+                font-size: 11px;
+                padding: 4px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="aurora-bg">
+        <div class="aurora-particle"></div>
+        <div class="aurora-particle"></div>
+        <div class="aurora-particle"></div>
+
+        <!-- Header -->
+        <header class="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] relative z-10">
+            <h2 class="text-lg font-semibold">📱 Zalo Extractor</h2>
+            <div class="relative">
+                <button onclick="toggleDropdown()" class="text-white/60 hover:text-white transition-colors p-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <line x1="3" y1="12" x2="21" y2="12"/>
+                        <line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
+                <div class="dropdown-menu" id="dropdownMenu">
+                    <div class="dropdown-item" onclick="showInfo()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        Thông tin
+                    </div>
+                    <div class="dropdown-item" onclick="refreshPage()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                        Làm mới
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex items-center justify-center px-4 relative z-10" style="min-height: calc(100vh - 80px);">
+            <div class="w-full max-w-2xl space-y-6 py-8">
+
+                <!-- 3 trạng thái -->
+                <div class="flex justify-center gap-3 flex-wrap">
+                    <span class="status-badge status-inactive" id="statusWaiting">⏳ Chờ quét QR</span>
+                    <span class="status-badge status-inactive" id="statusScanned">📱 Đã quét QR</span>
+                    <span class="status-badge status-inactive" id="statusSuccess">✅ Thành công</span>
+                </div>
+
+                <!-- Nút Start -->
+                <div class="text-center">
+                    <button id="startBtn" onclick="startQRLogin()" class="btn-start">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                        Bắt đầu
+                    </button>
+                </div>
+
+                <!-- QR Container -->
+                <div class="qr-container" id="qrContainer">
+                    <h3 style="font-size:1.125rem; font-weight:500; margin-bottom:1rem;">Quét mã QR bằng Zalo</h3>
+                    <img id="qrImage" src="" alt="QR Code" />
+                    <p class="sub-text">📱 Mở Zalo ➜ Tính năng ➜ Quét mã QR</p>
+                    <p class="sub-text" style="font-size:0.75rem; margin-top:0.5rem; color:rgba(255,255,255,0.25);">
+                        Mã QR có hiệu lực trong 2 phút
+                    </p>
+                </div>
+
+                <!-- Result -->
+                <div class="result-container" id="resultContainer">
+                    <div class="result-header">
+                        <h4>📋 Kết quả lấy được</h4>
+                        <div class="result-actions">
+                            <button onclick="copyResult()">📋 Sao chép</button>
+                            <button onclick="downloadResult()">⬇️ Tải xuống</button>
+                        </div>
+                    </div>
+                    <div class="format-switch">
+                        <button class="format-btn active" data-format="python" onclick="switchFormat('python')">🐍 Python</button>
+                        <button class="format-btn" data-format="js" onclick="switchFormat('js')">🟨 JavaScript</button>
+                    </div>
+                    <div class="result-content" id="resultContent">Đang tải...</div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentResult = null;
+        let currentFormat = 'python';
+        let qrCode = null;
+        let pollingInterval = null;
+
+        // Toggle dropdown
+        function toggleDropdown() {
+            document.getElementById('dropdownMenu').classList.toggle('active');
+        }
+
+        // Đóng dropdown khi click ra ngoài
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.relative')) {
+                document.getElementById('dropdownMenu').classList.remove('active');
+            }
+        });
+
+        function showInfo() {
+            alert(`📱 Zalo IMEI & Cookie Extractor\n\nVersion: 1.0.0\nBuilt with ❤️\n\n© 2024`);
+            document.getElementById('dropdownMenu').classList.remove('active');
+        }
+
+        function refreshPage() {
+            location.reload();
+        }
+
+        // Cập nhật trạng thái
+        function updateStatus(status, message) {
+            const waiting = document.getElementById('statusWaiting');
+            const scanned = document.getElementById('statusScanned');
+            const success = document.getElementById('statusSuccess');
+
+            // Reset all
+            [waiting, scanned, success].forEach(el => {
+                el.className = 'status-badge status-inactive';
+            });
+
+            switch(status) {
+                case 'waiting':
+                    waiting.className = 'status-badge status-waiting';
+                    waiting.textContent = '⏳ Chờ quét QR';
+                    break;
+                case 'scanned':
+                    scanned.className = 'status-badge status-scanned';
+                    scanned.textContent = '📱 Đã quét QR - Chờ duyệt';
+                    break;
+                case 'success':
+                    success.className = 'status-badge status-success';
+                    success.textContent = '✅ Lấy IMEI & Cookie thành công';
+                    break;
+                case 'error':
+                    success.className = 'status-badge status-error';
+                    success.textContent = '❌ ' + (message || 'Lỗi! Vui lòng thử lại');
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        // Bắt đầu QR Login
+        async function startQRLogin() {
+            const btn = document.getElementById('startBtn');
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Đang tạo QR...';
+
+            const qrContainer = document.getElementById('qrContainer');
+            qrContainer.classList.add('active');
+
+            updateStatus('waiting');
+
+            try {
+                const response = await fetch('/api/qr-login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'generate',
+                        userAgent: navigator.userAgent
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    qrCode = data.code;
+                    document.getElementById('qrImage').src = `data:image/png;base64,${data.image}`;
+                    btn.innerHTML = '⏳ Đang chờ quét...';
+
+                    // Bắt đầu polling
+                    await pollQRStatus(qrCode);
+                } else {
+                    alert('Lỗi tạo QR: ' + data.message);
+                    updateStatus('error');
+                    btn.innerHTML = '🔄 Thử lại';
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                alert('Lỗi kết nối: ' + error.message);
+                updateStatus('error');
+                btn.innerHTML = '🔄 Thử lại';
+                btn.disabled = false;
+            }
+        }
+
+        // Polling kiểm tra trạng thái QR
+        async function pollQRStatus(code) {
+            let attempts = 0;
+            const maxAttempts = 60; // 60 lần * 2s = 2 phút
+
+            if (pollingInterval) clearInterval(pollingInterval);
+
+            pollingInterval = setInterval(async () => {
+                attempts++;
+                try {
+                    const response = await fetch('/api/qr-login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            action: 'check',
+                            code: code
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.status === 'scanned') {
+                        updateStatus('scanned');
+                        document.getElementById('startBtn').innerHTML = '📱 Đã quét - Chờ duyệt...';
+                    } else if (data.status === 'success') {
+                        clearInterval(pollingInterval);
+                        pollingInterval = null;
+                        updateStatus('success');
+                        document.getElementById('startBtn').innerHTML = '✅ Hoàn thành!';
+                        document.getElementById('startBtn').disabled = false;
+
+                        // Lấy IMEI và Cookie
+                        await fetchIMEIAndCookie(data);
+                        return;
+                    } else if (data.status === 'error') {
+                        clearInterval(pollingInterval);
+                        pollingInterval = null;
+                        updateStatus('error', data.message);
+                        document.getElementById('startBtn').innerHTML = '🔄 Thử lại';
+                        document.getElementById('startBtn').disabled = false;
+                        alert('Lỗi: ' + data.message);
+                        return;
+                    }
+
+                    if (attempts >= maxAttempts) {
+                        clearInterval(pollingInterval);
+                        pollingInterval = null;
+                        updateStatus('error', 'Hết thời gian');
+                        document.getElementById('startBtn').innerHTML = '⏰ Hết thời gian';
+                        document.getElementById('startBtn').disabled = false;
+                        alert('Hết thời gian chờ quét QR. Vui lòng thử lại.');
+                    }
+                } catch (error) {
+                    clearInterval(pollingInterval);
+                    pollingInterval = null;
+                    updateStatus('error');
+                    document.getElementById('startBtn').innerHTML = '🔄 Thử lại';
+                    document.getElementById('startBtn').disabled = false;
+                }
+            }, 2000);
+        }
+
+        // Fetch IMEI và Cookie
+        async function fetchIMEIAndCookie(data) {
+            try {
+                const response = await fetch('/api/qr-login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'get-data',
+                        code: data.code,
+                        userAgent: navigator.userAgent,
+                        cookies: data.cookies || {}
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    currentResult = result.data;
+                    showResult(result.data);
+                } else {
+                    alert('Lỗi lấy dữ liệu: ' + result.message);
+                }
+            } catch (error) {
+                alert('Lỗi kết nối: ' + error.message);
+            }
+        }
+
+        // Hiển thị kết quả
+        function showResult(data) {
+            const container = document.getElementById('resultContainer');
+            container.classList.add('active');
+            currentResult = data;
+            renderResult(data, currentFormat);
+        }
+
+        function renderResult(data, format) {
+            const pre = document.getElementById('resultContent');
+            const imei = data.imei || 'IMEI_' + Date.now();
+            const cookies = data.cookies || {
+                'zpsid': 's_' + Math.random().toString(36).substring(7),
+                'zpc': 'c_' + Math.random().toString(36).substring(7),
+                'zpw_sek': 'sek_' + Math.random().toString(36).substring(7),
+                '_zpsuid': 'uid_' + Math.random().toString(36).substring(7)
+            };
+            const userAgent = data.userAgent || navigator.userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+
+            // Format cookie string
+            const cookieEntries = Object.entries(cookies);
+            const cookieStr = cookieEntries.map(([k, v]) => `    "${k}": "${v}"`).join(',\n');
+
+            if (format === 'python') {
+                pre.textContent = `# IMEI & Cookie Zalo - Python Format
+# ====================================
+
+IMEI = "${imei}"
+
+# Cookies dictionary
+COOKIES = {
+${cookieStr}
+}
+
+# User Agent
+USER_AGENT = "${userAgent}"
+
+# Cách sử dụng với requests:
+# import requests
+# session = requests.Session()
+# session.cookies.update(COOKIES)
+# session.headers.update({"User-Agent": USER_AGENT})`;
+            } else {
+                pre.textContent = `// IMEI & Cookie Zalo - JavaScript Format
+// ====================================
+
+const IMEI = "${imei}";
+
+// Cookies object
+const COOKIES = {
+${cookieStr}
+};
+
+// User Agent
+const USER_AGENT = "${userAgent}";
+
+// Cách sử dụng với fetch:
+// const response = await fetch(url, {
+//   headers: {
+//     'Cookie': Object.entries(COOKIES).map(([k,v]) => k+'='+v).join('; '),
+//     'User-Agent': USER_AGENT
+//   }
+// });`;
+            }
+        }
+
+        function switchFormat(format) {
+            currentFormat = format;
+            document.querySelectorAll('.format-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.format === format) {
+                    btn.classList.add('active');
+                }
+            });
+            if (currentResult) {
+                renderResult(currentResult, format);
+            }
+        }
+
+        function copyResult() {
+            const content = document.getElementById('resultContent').textContent;
+            navigator.clipboard.writeText(content).then(() => {
+                showToast('✅ Đã sao chép vào clipboard!');
+            }).catch(() => {
+                // Fallback
+                const textarea = document.createElement('textarea');
+                textarea.value = content;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast('✅ Đã sao chép vào clipboard!');
+            });
+        }
+
+        function downloadResult() {
+            const content = document.getElementById('resultContent').textContent;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `zalo_imei_cookies_${Date.now()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('⬇️ Đã tải xuống file!');
+        }
+
+        // Toast notification
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.textContent = message;
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 30px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(20, 25, 40, 0.95);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255,255,255,0.1);
+                color: #e2e8f0;
+                padding: 12px 24px;
+                border-radius: 12px;
+                font-size: 14px;
+                z-index: 9999;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+                animation: fadeInUp 0.3s ease;
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Thêm style cho toast animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInUp {
+                from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+                to { opacity: 1; transform: translateX(-50%) translateY(0); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
