@@ -1,0 +1,14 @@
+{
+  "name": "zalo-imei-extractor",
+  "version": "1.0.0",
+  "description": "Zalo IMEI & Cookie Extractor - No Login Required",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "vercel": "^34.2.0"
+  }
+}
